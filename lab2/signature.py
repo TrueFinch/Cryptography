@@ -1,3 +1,4 @@
+from typing import Tuple
 import lab1.randprime_functions as rf
 from lab1.util import show_debug_messages
 import hashlib
@@ -63,7 +64,17 @@ class ElGamalSystem:
             return False
         hash_value = self.__get_file_hash()
         return pow(pk.generator, hash_value, pk.prime) == (
-                    pow(pk.key, sign.r, pk.prime) * pow(sign.r, sign.s, pk.prime)) % pk.prime
+                pow(pk.key, sign.r, pk.prime) * pow(sign.r, sign.s, pk.prime)) % pk.prime
 
+    def save_sign_to_file(self, signature: ElGamalSignature, pk: ElGamalKey):
+        with open('sign_{}'.format(self.__file_path), 'w') as file_out:
+            file_out.write('{}\n{}\n{}\n{}\n{}'.format(signature.r, signature.s, pk.key, pk.generator, pk.prime, ))
+            file_out.close()
+        if lab2.util.show_debug_messages:
+            print('DEBUG: Signature saved.')
 
-    # def save_signature(self, sign:):
+    def load_sign_from_file(self) -> Tuple[ElGamalSignature, ElGamalKey]:
+        with open('sign_{}'.format(self.__file_path), 'r') as file_in:
+            r, s, key, generator, prime = map(int, file_in.readlines())
+            file_in.close()
+        return ElGamalSignature(r, s), ElGamalKey(key, generator, prime)
