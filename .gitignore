@@ -1,5 +1,7 @@
 # Project exclude paths
 /venv/
 .idea
-lab1/__pycache__
-lab1/data
+/lab1/__pycache__
+/lab1/data/
+/lab2/data/
+/lab2/__pycache__/
