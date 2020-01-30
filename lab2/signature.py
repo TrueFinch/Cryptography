@@ -13,10 +13,15 @@ class ElGamalKey:
         self.prime = prime
 
 
-class ElGamalSignature:
+class Signature:
     def __init__(self, r, s):
         self.r = r
         self.s = s
+
+
+class ElGamalSignature(Signature):
+    def __init__(self, r, s):
+        super().__init__(r, s)
 
 
 class ElGamalSystem:
@@ -41,14 +46,36 @@ class ElGamalSystem:
         return public_key, private_key
 
     def create_signature(self, private_key: ElGamalKey):
-        file_hash_value = self.__get_file_hash()
+        file_hash_value = self.__get_file_hash(show_debug_messages)
         coprime = lab2.util.generate_random_coprime(private_key.prime - 1)
         r = pow(private_key.generator, coprime, private_key.prime)
         s = ((file_hash_value - private_key.key * r) * lab2.util.reverse_by_mod(coprime, private_key.prime - 1)) \
             % (private_key.prime - 1)
         return ElGamalSignature(r, s)
 
-    def __get_file_hash(self, ):
+    def is_invalid_signature(self, sign: ElGamalSignature, pk: ElGamalKey):
+        if not ((0 < sign.r < pk.prime) and (0 < sign.s < pk.prime - 1)):
+            return False
+        hash_value = self.__get_file_hash(show_debug_messages)
+        return pow(pk.generator, hash_value, pk.prime) == (
+                pow(pk.key, sign.r, pk.prime) * pow(sign.r, sign.s, pk.prime)) % pk.prime
+
+    def save_sign_to_file(self, signature: ElGamalSignature, pk: ElGamalKey):
+        with open('sign_{}'.format(self.__file_path), 'w') as file_out:
+            file_out.write('{}\n{}\n{}\n{}\n{}'.format(signature.r, signature.s, pk.key, pk.generator, pk.prime))
+            file_out.close()
+        if lab2.util.show_debug_messages:
+            print('DEBUG: Signature saved.')
+
+    def load_sign_from_file(self) -> Tuple[ElGamalSignature, ElGamalKey]:
+        with open('sign_{}'.format(self.__file_path), 'r') as file_in:
+            r, s, key, generator, prime = map(int, file_in.readlines())
+            file_in.close()
+        if lab2.util.show_debug_messages:
+            print('DEBUG: Signature loaded.')
+        return ElGamalSignature(r, s), ElGamalKey(key, generator, prime)
+
+    def __get_file_hash(self, show_debug_messages=False):
         if show_debug_messages:
             print('DEBUG: Start hashing file.')
         file_hash = hashlib.sha256()
@@ -58,23 +85,3 @@ class ElGamalSystem:
         if show_debug_messages:
             print('DEBUG: Finish hashing file.')
         return result
-
-    def is_invalid_signature(self, sign: ElGamalSignature, pk: ElGamalKey):
-        if not ((0 < sign.r < pk.prime) and (0 < sign.s < pk.prime - 1)):
-            return False
-        hash_value = self.__get_file_hash()
-        return pow(pk.generator, hash_value, pk.prime) == (
-                pow(pk.key, sign.r, pk.prime) * pow(sign.r, sign.s, pk.prime)) % pk.prime
-
-    def save_sign_to_file(self, signature: ElGamalSignature, pk: ElGamalKey):
-        with open('sign_{}'.format(self.__file_path), 'w') as file_out:
-            file_out.write('{}\n{}\n{}\n{}\n{}'.format(signature.r, signature.s, pk.key, pk.generator, pk.prime, ))
-            file_out.close()
-        if lab2.util.show_debug_messages:
-            print('DEBUG: Signature saved.')
-
-    def load_sign_from_file(self) -> Tuple[ElGamalSignature, ElGamalKey]:
-        with open('sign_{}'.format(self.__file_path), 'r') as file_in:
-            r, s, key, generator, prime = map(int, file_in.readlines())
-            file_in.close()
-        return ElGamalSignature(r, s), ElGamalKey(key, generator, prime)
